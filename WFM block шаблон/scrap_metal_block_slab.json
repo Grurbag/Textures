@@ -1,0 +1,13 @@
+{
+    "variants": {
+        "axis=y,type=bottom": { "model": "wfm:block/scrap_metal_block_slab" },
+        "axis=y,type=top": { "model": "wfm:block/scrap_metal_block_slab_top" },
+        "axis=y,type=double": { "model": "wfm:block/scrap_metal_block" },
+        "axis=z,type=bottom": { "model": "wfm:block/scrap_metal_block_slab_sideways", "uvlock": true },
+        "axis=z,type=top": { "model": "wfm:block/scrap_metal_block_slab_sideways_top", "uvlock": true },
+        "axis=z,type=double": { "model": "wfm:block/scrap_metal_block" },
+        "axis=x,type=bottom": { "model": "wfm:block/scrap_metal_block_slab_sideways", "y": 270, "uvlock": true },
+        "axis=x,type=top": { "model": "wfm:block/scrap_metal_block_slab_sideways_top", "y": 270, "uvlock": true },
+        "axis=x,type=double": { "model": "wfm:block/scrap_metal_block" }
+    }
+}

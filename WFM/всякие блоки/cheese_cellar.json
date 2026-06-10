@@ -1,0 +1,13 @@
+{
+  "parent": "block/cube",
+  "textures": {
+    "down": "create_cheese:block/cheese_cellar_bottom-",
+    "up": "create_cheese:block/cheese_cellar_top",
+    "north": "create_cheese:block/cheese_cellar_side",
+    "east": "create_cheese:block/cheese_cellar_side",
+    "south": "create_cheese:block/cheese_cellar_side",
+    "west": "create_cheese:block/cheese_cellar_side",
+    "particle": "create_cheese:block/cheese_cellar_bottom-"
+  },
+  "render_type": "solid"
+}

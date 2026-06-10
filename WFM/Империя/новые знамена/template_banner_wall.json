@@ -1,0 +1,54 @@
+{
+	"credit": "Made with Blockbench",
+	"parent": "block/block",
+	"ambientocclusion": false,
+	"texture_size": [48, 75],
+	"textures": {
+		"1": "Desktop/NewFolder/Текстуры/WFM/Империя/новые знамена/reikland_wall",
+		"particle": "Desktop/NewFolder/Текстуры/WFM/Империя/новые знамена/reikland_wall"
+	},
+	"elements": [
+		{
+			"name": "stand",
+			"from": [0, 14, 14],
+			"to": [16, 16, 16],
+			"rotation": {"angle": 0, "axis": "y", "origin": [10, 1, 7]},
+			"faces": {
+				"north": {"uv": [0, 13.65333, 5.33333, 14.08], "texture": "#1"},
+				"east": {"uv": [13.33333, 6.18667, 14, 6.61333], "texture": "#1"},
+				"south": {"uv": [8, 13.65333, 13.33333, 14.08], "texture": "#1"},
+				"west": {"uv": [13.33333, 5.76, 14, 6.18667], "texture": "#1"},
+				"up": {"uv": [0.66667, 14.08, 6, 14.50667], "texture": "#1"},
+				"down": {"uv": [7.33333, 14.08, 12.66667, 14.50667], "texture": "#1"}
+			}
+		},
+		{
+			"name": "banner",
+			"from": [0, -16, 15.3141],
+			"to": [16, 14, 15.3141],
+			"rotation": {"angle": 0, "axis": "y", "origin": [8, 2, 7]},
+			"faces": {
+				"north": {"uv": [0, 0, 10.70834, 13.505], "texture": "#1"},
+				"east": {"uv": [0, 0, 0, 0], "texture": "#1"},
+				"south": {"uv": [0, 0, 10.70834, 13.63], "texture": "#1"},
+				"west": {"uv": [0, 0, 0, 0], "texture": "#1"},
+				"up": {"uv": [0, 0, 0, 0], "texture": "#1"},
+				"down": {"uv": [0, 0, 0, 0], "texture": "#1"}
+			}
+		}
+	],
+	"groups": [
+		{
+			"name": "stand",
+			"origin": [8, 0, 7],
+			"color": 0,
+			"children": [0]
+		},
+		{
+			"name": "banner",
+			"origin": [8, 44, 7],
+			"color": 0,
+			"children": [1]
+		}
+	]
+}

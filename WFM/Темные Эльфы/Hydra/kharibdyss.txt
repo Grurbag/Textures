@@ -1,0 +1,377 @@
+package wfm.common.entity.npc.dark_elf;
+
+import net.minecraft.block.Blocks;
+import net.minecraft.entity.CreatureEntity;
+import net.minecraft.entity.EntityType;
+import net.minecraft.entity.LivingEntity;
+import net.minecraft.entity.MoverType;
+import net.minecraft.entity.ai.RandomPositionGenerator;
+import net.minecraft.entity.ai.attributes.Attribute;
+import net.minecraft.entity.ai.attributes.AttributeModifierMap;
+import net.minecraft.entity.ai.attributes.Attributes;
+import net.minecraft.entity.ai.controller.MovementController;
+import net.minecraft.entity.ai.goal.*;
+import net.minecraft.entity.monster.DrownedEntity;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.item.ItemStack;
+import net.minecraft.pathfinding.GroundPathNavigator;
+import net.minecraft.pathfinding.Path;
+import net.minecraft.pathfinding.PathNodeType;
+import net.minecraft.pathfinding.SwimmerPathNavigator;
+import net.minecraft.util.DamageSource;
+import net.minecraft.util.SoundEvent;
+import net.minecraft.util.SoundEvents;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.MathHelper;
+import net.minecraft.util.math.vector.Vector3d;
+import net.minecraft.world.IWorldReader;
+import net.minecraft.world.World;
+import wfm.common.entity.npc.AbstractAnimatedEntity;
+import wfm.common.entity.npc.NPCEntity;
+import wfm.common.entity.npc.ai.AttackGoalsHolder;
+import wfm.common.entity.npc.ai.StandardAttackModeUpdaters;
+import wfm.common.entity.npc.ai.goal.NPCAnimatedRangedAttackGoal;
+import wfm.common.entity.npc.ai.goal.NPCMeleeAttackGoal;
+import wfm.common.entity.npc.data.NPCGenderProvider;
+import wfm.common.entity.projectile.HydraBreathEntity;
+import wfm.common.init.LOTRAttributes;
+import wfm.common.init.LOTRItems;
+import wfm.common.init.LOTRSoundEvents;
+
+import javax.annotation.Nullable;
+import java.util.ArrayList;
+import java.util.EnumSet;
+import java.util.List;
+import java.util.Random;
+
+public class KharibdyssEntity extends AbstractAnimatedEntity {
+	private boolean searchingForLand;
+	protected final SwimmerPathNavigator waterNavigation;
+	protected final GroundPathNavigator groundNavigation;
+
+	public KharibdyssEntity(EntityType type, World w) {
+		super(type, w);
+		List<AnimatedAttack> attacks = new ArrayList<>();
+		attacks.add(new AnimatedAttack("attack", 0.75f, 1.25f, AbstractAnimatedEntity::performAreaAttack));
+		attacks.add(new AnimatedAttack("attack2", 0.75f, 1.25f, AbstractAnimatedEntity::performAreaAttack));
+		this.setAttackAnimations(attacks);
+		List<String> idleAnims = new ArrayList<>();
+		idleAnims.add("idle1");
+		this.setIdleAnimations(idleAnims);
+		List<String> walkAnims = new ArrayList<>();
+		walkAnims.add("walk");
+		this.setWalkAnimations(walkAnims);
+		List<String> chase = new ArrayList<>();
+		chase.add("walk_chase");
+		this.setPursuitAnimations(chase);
+		this.moveControl = new KharibdyssEntity.MoveHelperController(this);
+		this.setPathfindingMalus(PathNodeType.WATER, 0.0F);
+		this.waterNavigation = new SwimmerPathNavigator(this, w);
+		this.groundNavigation = new GroundPathNavigator(this, w);
+	}
+
+	@Override
+	protected void addNPCAI() {
+		super.addNPCAI();
+		goalSelector.addGoal(1, new GoToWaterGoal(this, (double)1.0F));
+		goalSelector.addGoal(0, new SwimGoal(this));
+		this.goalSelector.addGoal(5, new GoToBeachGoal(this, (double)1.0F));
+		this.goalSelector.addGoal(6, new SwimUpGoal(this, (double)1.0F, this.level.getSeaLevel()));
+		addAttackGoal(2);
+		this.goalSelector.addGoal(7, new RandomWalkingGoal(this, (double)1.0F));
+		//goalSelector.addGoal(9, new WaterAvoidingRandomWalkingGoal(this, 1.0D));
+		goalSelector.addGoal(11, new LookAtGoal(this, PlayerEntity.class, 8.0F, 0.05F));
+		goalSelector.addGoal(11, new LookAtGoal(this, NPCEntity.class, 5.0F, 0.05F));
+		goalSelector.addGoal(12, new LookAtGoal(this, LivingEntity.class, 8.0F, 0.02F));
+		goalSelector.addGoal(13, new LookRandomlyGoal(this));
+	}
+
+	public boolean canBreatheUnderwater() {
+		return true;
+	}
+
+	public boolean isPushedByFluid() {
+		return !this.isSwimming();
+	}
+
+	static class GoToBeachGoal extends MoveToBlockGoal {
+		private final KharibdyssEntity drowned;
+
+		public GoToBeachGoal(KharibdyssEntity p_i48911_1_, double p_i48911_2_) {
+			super(p_i48911_1_, p_i48911_2_, 8, 2);
+			this.drowned = p_i48911_1_;
+		}
+
+		public boolean canUse() {
+			return super.canUse() && !this.drowned.level.isDay() && this.drowned.isInWater() && this.drowned.getY() >= (double)(this.drowned.level.getSeaLevel() - 3);
+		}
+
+		public boolean canContinueToUse() {
+			return super.canContinueToUse();
+		}
+
+		protected boolean isValidTarget(IWorldReader p_179488_1_, BlockPos p_179488_2_) {
+			BlockPos lvt_3_1_ = p_179488_2_.above();
+			return p_179488_1_.isEmptyBlock(lvt_3_1_) && p_179488_1_.isEmptyBlock(lvt_3_1_.above()) ? p_179488_1_.getBlockState(p_179488_2_).entityCanStandOn(p_179488_1_, p_179488_2_, this.drowned) : false;
+		}
+
+		public void start() {
+			this.drowned.setSearchingForLand(false);
+			this.drowned.navigation = this.drowned.groundNavigation;
+			super.start();
+		}
+
+		public void stop() {
+			super.stop();
+		}
+	}
+
+	static class GoToWaterGoal extends Goal {
+		private final CreatureEntity mob;
+		private double wantedX;
+		private double wantedY;
+		private double wantedZ;
+		private final double speedModifier;
+		private final World level;
+
+		public GoToWaterGoal(CreatureEntity p_i48910_1_, double p_i48910_2_) {
+			this.mob = p_i48910_1_;
+			this.speedModifier = p_i48910_2_;
+			this.level = p_i48910_1_.level;
+			this.setFlags(EnumSet.of(Flag.MOVE));
+		}
+
+		public boolean canUse() {
+			if (!this.level.isDay()) {
+				return false;
+			} else if (this.mob.isInWater()) {
+				return false;
+			} else {
+				Vector3d lvt_1_1_ = this.getWaterPos();
+				if (lvt_1_1_ == null) {
+					return false;
+				} else {
+					this.wantedX = lvt_1_1_.x;
+					this.wantedY = lvt_1_1_.y;
+					this.wantedZ = lvt_1_1_.z;
+					return true;
+				}
+			}
+		}
+
+		public boolean canContinueToUse() {
+			return !this.mob.getNavigation().isDone();
+		}
+
+		public void start() {
+			this.mob.getNavigation().moveTo(this.wantedX, this.wantedY, this.wantedZ, this.speedModifier);
+		}
+
+		@Nullable
+		private Vector3d getWaterPos() {
+			Random lvt_1_1_ = this.mob.getRandom();
+			BlockPos lvt_2_1_ = this.mob.blockPosition();
+
+			for(int lvt_3_1_ = 0; lvt_3_1_ < 10; ++lvt_3_1_) {
+				BlockPos lvt_4_1_ = lvt_2_1_.offset(lvt_1_1_.nextInt(20) - 10, 2 - lvt_1_1_.nextInt(8), lvt_1_1_.nextInt(20) - 10);
+				if (this.level.getBlockState(lvt_4_1_).is(Blocks.WATER)) {
+					return Vector3d.atBottomCenterOf(lvt_4_1_);
+				}
+			}
+
+			return null;
+		}
+	}
+
+	static class SwimUpGoal extends Goal {
+		private final KharibdyssEntity drowned;
+		private final double speedModifier;
+		private final int seaLevel;
+		private boolean stuck;
+
+		public SwimUpGoal(KharibdyssEntity p_i48908_1_, double p_i48908_2_, int p_i48908_4_) {
+			this.drowned = p_i48908_1_;
+			this.speedModifier = p_i48908_2_;
+			this.seaLevel = p_i48908_4_;
+		}
+
+		public boolean canUse() {
+			return !this.drowned.level.isDay() && this.drowned.isInWater() && this.drowned.getY() < (double)(this.seaLevel - 2);
+		}
+
+		public boolean canContinueToUse() {
+			return this.canUse() && !this.stuck;
+		}
+
+		public void tick() {
+			if (this.drowned.getY() < (double)(this.seaLevel - 1) && (this.drowned.getNavigation().isDone() || this.drowned.closeToNextPos())) {
+				Vector3d lvt_1_1_ = RandomPositionGenerator.getPosTowards(this.drowned, 4, 8, new Vector3d(this.drowned.getX(), (double)(this.seaLevel - 1), this.drowned.getZ()));
+				if (lvt_1_1_ == null) {
+					this.stuck = true;
+					return;
+				}
+
+				this.drowned.getNavigation().moveTo(lvt_1_1_.x, lvt_1_1_.y, lvt_1_1_.z, this.speedModifier);
+			}
+
+		}
+
+		public void start() {
+			this.drowned.setSearchingForLand(true);
+			this.stuck = false;
+		}
+
+		public void stop() {
+			this.drowned.setSearchingForLand(false);
+		}
+	}
+
+	public void setSearchingForLand(boolean p_204713_1_) {
+		this.searchingForLand = p_204713_1_;
+	}
+
+	protected boolean closeToNextPos() {
+		Path lvt_1_1_ = this.getNavigation().getPath();
+		if (lvt_1_1_ != null) {
+			BlockPos lvt_2_1_ = lvt_1_1_.getTarget();
+			if (lvt_2_1_ != null) {
+				double lvt_3_1_ = this.distanceToSqr((double)lvt_2_1_.getX(), (double)lvt_2_1_.getY(), (double)lvt_2_1_.getZ());
+				if (lvt_3_1_ < (double)4.0F) {
+					return true;
+				}
+			}
+		}
+
+		return false;
+	}
+	
+	private boolean wantsToSwim() {
+		if (this.searchingForLand) {
+			return true;
+		} else {
+			LivingEntity lvt_1_1_ = this.getTarget();
+			return lvt_1_1_ != null && lvt_1_1_.isInWater();
+		}
+	}
+	
+	public void updateSwimming() {
+		if (!this.level.isClientSide) {
+			if (this.isEffectiveAi() && this.isInWater() && this.wantsToSwim()) {
+				this.navigation = this.waterNavigation;
+				this.setSwimming(true);
+			} else {
+				this.navigation = this.groundNavigation;
+				this.setSwimming(false);
+			}
+		}
+
+	}
+
+	static class MoveHelperController extends MovementController {
+		private final KharibdyssEntity drowned;
+
+		public MoveHelperController(KharibdyssEntity p_i48909_1_) {
+			super(p_i48909_1_);
+			this.drowned = p_i48909_1_;
+		}
+
+		public void tick() {
+			LivingEntity lvt_1_1_ = this.drowned.getTarget();
+			if (this.drowned.wantsToSwim() && this.drowned.isInWater()) {
+				if (lvt_1_1_ != null && lvt_1_1_.getY() > this.drowned.getY() || this.drowned.searchingForLand) {
+					this.drowned.setDeltaMovement(this.drowned.getDeltaMovement().add((double)0.0F, 0.002, (double)0.0F));
+				}
+
+				if (this.operation != Action.MOVE_TO || this.drowned.getNavigation().isDone()) {
+					this.drowned.setSpeed(0.0F);
+					return;
+				}
+
+				double lvt_2_1_ = this.wantedX - this.drowned.getX();
+				double lvt_4_1_ = this.wantedY - this.drowned.getY();
+				double lvt_6_1_ = this.wantedZ - this.drowned.getZ();
+				double lvt_8_1_ = (double)MathHelper.sqrt(lvt_2_1_ * lvt_2_1_ + lvt_4_1_ * lvt_4_1_ + lvt_6_1_ * lvt_6_1_);
+				lvt_4_1_ /= lvt_8_1_;
+				float lvt_10_1_ = (float)(MathHelper.atan2(lvt_6_1_, lvt_2_1_) * (double)(180F / (float)Math.PI)) - 90.0F;
+				this.drowned.yRot = this.rotlerp(this.drowned.yRot, lvt_10_1_, 90.0F);
+				this.drowned.yBodyRot = this.drowned.yRot;
+				float lvt_11_1_ = (float)(this.speedModifier * this.drowned.getAttributeValue(Attributes.MOVEMENT_SPEED));
+				float lvt_12_1_ = MathHelper.lerp(0.125F, this.drowned.getSpeed(), lvt_11_1_);
+				this.drowned.setSpeed(lvt_12_1_);
+				this.drowned.setDeltaMovement(this.drowned.getDeltaMovement().add((double)lvt_12_1_ * lvt_2_1_ * 0.005, (double)lvt_12_1_ * lvt_4_1_ * 0.1, (double)lvt_12_1_ * lvt_6_1_ * 0.005));
+			} else {
+				if (!this.drowned.onGround) {
+					this.drowned.setDeltaMovement(this.drowned.getDeltaMovement().add((double)0.0F, -0.008, (double)0.0F));
+				}
+
+				super.tick();
+			}
+
+		}
+	}
+
+	public void travel(Vector3d p_213352_1_) {
+		if (this.isEffectiveAi() && this.isInWater() && this.wantsToSwim()) {
+			this.moveRelative(0.01F, p_213352_1_);
+			this.move(MoverType.SELF, this.getDeltaMovement());
+			this.setDeltaMovement(this.getDeltaMovement().scale(0.9));
+		} else {
+			super.travel(p_213352_1_);
+		}
+
+	}
+	
+	@Override
+	protected void addNPCTargetingAI() {
+		addAggressiveTargetingGoals();
+	}
+
+	protected Goal createUshabtiAttackGoal() {
+		return new NPCMeleeAttackGoal(this, 1.5D);
+	}
+
+	@Override
+	public NPCGenderProvider getGenderProvider() {
+		return NPCGenderProvider.MALE;
+	}
+
+
+	@Override
+	protected void initialiseAttackGoals(AttackGoalsHolder holder) {
+		holder.setMeleeAttackGoal(createUshabtiAttackGoal());
+	}
+
+	public static AttributeModifierMap.MutableAttribute regAttrs() {
+		return NPCEntity.registerBaseNPCAttributes().add(Attributes.ARMOR, 20).add(Attributes.ATTACK_DAMAGE, 10.0F)
+				.add(Attributes.ATTACK_SPEED, 1.0).add(Attributes.MAX_HEALTH, 300.0D).add(Attributes.MOVEMENT_SPEED, 0.26D)
+				.add(Attributes.KNOCKBACK_RESISTANCE, 1.0F).add(Attributes.FOLLOW_RANGE, 36.0D);
+	}
+	
+	
+
+
+	protected SoundEvent getAmbientSound() {
+		return LOTRSoundEvents.HYDRA_AMBIENT;
+	}
+
+	protected SoundEvent getHurtSound(DamageSource p_184601_1_) {
+		return LOTRSoundEvents.HYDRA_HURT;
+	}
+
+	protected SoundEvent getDeathSound() {
+		return LOTRSoundEvents.HYDRA_DEATH;
+	}
+
+	protected SoundEvent getStepSound() {
+		return LOTRSoundEvents.STEP_HUGE;
+	}
+
+	protected SoundEvent getSwimSound() {
+		return LOTRSoundEvents.STEP_HUGE;
+	}
+
+	@Override
+	protected SoundEvent getAttackSound() {
+		return LOTRSoundEvents.HYDRA_ATTACK;
+	}
+}

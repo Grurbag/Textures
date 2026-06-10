@@ -1,0 +1,10 @@
+{
+    "variants": {
+        "": [
+            { "model": "wfm:block/scrap_metal_block" },
+            { "model": "wfm:block/scrap_metal_block", "y": 90, "x": 90 },
+            { "model": "wfm:block/scrap_metal_block", "y": 180, "x": 180 },
+            { "model": "wfm:block/scrap_metal_block", "y": 270, "x": 270 }
+        ]
+    }
+}

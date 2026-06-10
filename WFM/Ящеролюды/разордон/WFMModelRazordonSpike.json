@@ -1,0 +1,78 @@
+{
+	"format_version": "1.9.0",
+	"credit": "Made with Blockbench",
+	"texture_size": [32, 32],
+	"textures": {
+		"0": "razordon_spike",
+		"particle": "razordon_spike"
+	},
+	"elements": [
+		{
+			"from": [6.5, -1.46363, 7.62369],
+			"to": [9.5, 1.53637, 15.62369],
+			"rotation": {"angle": 0, "axis": "x", "origin": [0.5, 20.33637, 1.62369]},
+			"faces": {
+				"north": {"uv": [4, 4, 5.5, 5.5], "texture": "#0"},
+				"east": {"uv": [0, 4, 4, 5.5], "texture": "#0"},
+				"south": {"uv": [9.5, 4, 11, 5.5], "texture": "#0"},
+				"west": {"uv": [5.5, 4, 9.5, 5.5], "texture": "#0"},
+				"up": {"uv": [5.5, 4, 4, 0], "texture": "#0"},
+				"down": {"uv": [7, 0, 5.5, 4], "texture": "#0"}
+			}
+		},
+		{
+			"from": [7, -0.96363, 3.12369],
+			"to": [9, 1.03637, 8.12369],
+			"rotation": {"angle": 0, "axis": "x", "origin": [1, 23.83637, 1.12369]},
+			"faces": {
+				"north": {"uv": [11.5, 2.5, 12.5, 3.5], "texture": "#0"},
+				"east": {"uv": [9, 2.5, 11.5, 3.5], "texture": "#0"},
+				"south": {"uv": [15, 2.5, 16, 3.5], "texture": "#0"},
+				"west": {"uv": [12.5, 2.5, 15, 3.5], "texture": "#0"},
+				"up": {"uv": [12.5, 2.5, 11.5, 0], "texture": "#0"},
+				"down": {"uv": [13.5, 0, 12.5, 2.5], "texture": "#0"}
+			}
+		},
+		{
+			"from": [7.5, -0.46363, 0.62369],
+			"to": [8.5, 0.53637, 3.62369],
+			"rotation": {"angle": 0, "axis": "x", "origin": [1.5, 28.58637, 0.62369]},
+			"faces": {
+				"north": {"uv": [13.5, 5, 14, 5.5], "texture": "#0"},
+				"east": {"uv": [12, 5, 13.5, 5.5], "texture": "#0"},
+				"south": {"uv": [15.5, 5, 16, 5.5], "texture": "#0"},
+				"west": {"uv": [14, 5, 15.5, 5.5], "texture": "#0"},
+				"up": {"uv": [14, 5, 13.5, 3.5], "texture": "#0"},
+				"down": {"uv": [14.5, 3.5, 14, 5], "texture": "#0"}
+			}
+		}
+	],
+	"groups": [
+		{
+			"name": "horn",
+			"origin": [0, 17.33637, 1.12369],
+			"rotation": [17.5, 0, 0],
+			"scope": 0,
+			"color": 0,
+			"children": [
+				0,
+				{
+					"name": "horn",
+					"origin": [1, 23.83637, 1.12369],
+					"scope": 0,
+					"color": 0,
+					"children": [
+						1,
+						{
+							"name": "horn",
+							"origin": [0, 28.58637, 1.12369],
+							"scope": 0,
+							"color": 0,
+							"children": [2]
+						}
+					]
+				}
+			]
+		}
+	]
+}
